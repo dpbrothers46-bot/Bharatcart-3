@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BharatCart</title>
+<style>
+body{font-family:Arial,sans-serif;margin:0;background:#f5f7fb}
+header{background:#1f4e79;color:#fff;padding:20px;text-align:center}
+.filters{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;padding:10px}
+button{cursor:pointer}
+.filter-btn,.add{border:none;padding:10px 14px;border-radius:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:15px;padding:15px}
+.card{background:#fff;border-radius:12px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.card img{width:100%;height:180px;object-fit:cover;border-radius:8px}
+.price{font-weight:bold;color:#1f4e79}
+.add{background:#1f4e79;color:white;width:100%}
+#cartBtn{position:fixed;right:20px;bottom:20px;background:#1f4e79;color:#fff;padding:15px;border-radius:50%;border:none}
+#cartModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5)}
+.modal-content{background:#fff;max-width:700px;margin:5% auto;padding:20px;border-radius:12px;max-height:85vh;overflow:auto}
+.whatsapp{position:fixed;left:20px;bottom:20px;background:#25D366;color:white;padding:12px 16px;border-radius:25px;text-decoration:none}
+</style>
+</head>
+<body>
+<header>
+<h1>BharatCart</h1>
+<p>Digital products and physical products online shopping</p>
+<p>Satyun, Rajasthan | 8005937419</p>
+</header>
+
+<div class="filters">
+<button class="filter-btn" onclick="filterProducts('All')">All</button>
+<button class="filter-btn" onclick="filterProducts('Digital')">Digital</button>
+<button class="filter-btn" onclick="filterProducts('Physical')">Physical</button>
+</div>
+
+<div class="grid" id="products"></div>
+
+<button id="cartBtn" onclick="openCart()">🛒 <span id="count">0</span></button>
+
+<div id="cartModal">
+<div class="modal-content">
+<h2>Your Cart</h2>
+<div id="cartItems"></div>
+<h3>Total: ₹<span id="total">0</span></h3>
+
+<form action="https://formspree.io/f/YOUR_FORM_ID" method="POST" onsubmit="prepareOrder()">
+<input type="hidden" name="order_summary" id="orderSummary">
+<input required name="customer_name" placeholder="Customer Name" style="width:100%;margin:5px 0;padding:10px">
+<input required name="phone" placeholder="Phone Number" style="width:100%;margin:5px 0;padding:10px">
+<textarea required name="address" placeholder="Delivery Address" style="width:100%;margin:5px 0;padding:10px"></textarea>
+<textarea name="instructions" placeholder="Special Instructions" style="width:100%;margin:5px 0;padding:10px"></textarea>
+<button type="submit" class="add">Place Order</button>
+</form>
+<br>
+<button onclick="closeCart()">Close</button>
+</div>
+</div>
+
+<a class="whatsapp" href="https://wa.me/918005937419" target="_blank">WhatsApp</a>
+
+<script>
+const products=[
+{name:"Digital Marketing Ebook",price:199,cat:"Digital",img:"https://picsum.photos/300?1",desc:"Marketing guide"},
+{name:"AI Prompt Pack",price:299,cat:"Digital",img:"https://picsum.photos/300?2",desc:"Premium prompts"},
+{name:"Canva Templates",price:149,cat:"Digital",img:"https://picsum.photos/300?3",desc:"Editable templates"},
+{name:"Resume Bundle",price:99,cat:"Digital",img:"https://picsum.photos/300?4",desc:"Professional resumes"},
+{name:"Mobile Holder",price:149,cat:"Physical",img:"https://picsum.photos/300?5",desc:"Adjustable holder"},
+{name:"USB LED Light",price:99,cat:"Physical",img:"https://picsum.photos/300?6",desc:"Bright LED"},
+{name:"Wireless Mouse",price:499,cat:"Physical",img:"https://picsum.photos/300?7",desc:"Smooth mouse"},
+{name:"Water Bottle",price:249,cat:"Physical",img:"https://picsum.photos/300?8",desc:"Steel bottle"}
+];
+
+let cart=JSON.parse(localStorage.getItem("cart")||"[]");
+
+function render(list=products){
+document.getElementById("products").innerHTML=list.map((p,i)=>`
+<div class="card">
+<img loading="lazy" src="${p.img}" alt="${p.name}">
+<h3>${p.name}</h3>
+<p>${p.desc}</p>
+<p class="price">₹${p.price}</p>
+<button class="add" onclick="addCart(${products.indexOf(p)})">Add to Cart</button>
+</div>`).join("");
+}
+
+function addCart(i){
+let item=cart.find(x=>x.name===products[i].name);
+if(item)item.qty++;
+else cart.push({...products[i],qty:1});
+save();
+}
+
+function save(){
+localStorage.setItem("cart",JSON.stringify(cart));
+document.getElementById("count").textContent=cart.reduce((a,b)=>a+b.qty,0);
+}
+
+function filterProducts(c){
+render(c==="All"?products:products.filter(x=>x.cat===c));
+}
+
+function openCart(){
+document.getElementById("cartModal").style.display="block";
+drawCart();
+}
+function closeCart(){document.getElementById("cartModal").style.display="none";}
+
+function drawCart(){
+let total=0;
+document.getElementById("cartItems").innerHTML=cart.map((x,i)=>{
+let sub=x.price*x.qty; total+=sub;
+return `<div>${x.name} - ₹${x.price} x ${x.qty}
+<button onclick="changeQty(${i},1)">+</button>
+<button onclick="changeQty(${i},-1)">-</button>
+<button onclick="removeItem(${i})">Remove</button>
+= ₹${sub}</div>`;
+}).join("");
+document.getElementById("total").textContent=total;
+}
+
+function changeQty(i,v){
+cart[i].qty+=v;
+if(cart[i].qty<=0) cart.splice(i,1);
+save(); drawCart();
+}
+function removeItem(i){cart.splice(i,1);save();drawCart();}
+
+function prepareOrder(){
+let txt="BharatCart Order\n\n";
+let total=0;
+cart.forEach(i=>{txt+=`${i.name} x ${i.qty} = ₹${i.price*i.qty}\n`; total+=i.price*i.qty;});
+txt+=`\nTotal: ₹${total}`;
+document.getElementById("orderSummary").value=txt;
+localStorage.removeItem("cart");
+alert("Order placed! BharatCart will contact you on WhatsApp.");
+}
+
+save();
+render();
+</script>
+</body>
+</html>
